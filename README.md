@@ -69,3 +69,4 @@ What is the community structure of SAMPLK3?
 Examine SAMPLK1 and SAMPLK2 together with SAMPLK3, how have things changed over time? Produce a visualization that captures the changes.
 By examining the network do you think Sampson was correct in his group identification and description of the groups?  Use the Qudratic Assignment Procedure to test Sampson’s description at both time 1 and time 3. Discuss your results.
 
+<img width="604" alt="Screenshot 2021-05-26 at 14 07 55" src="https://user-images.githubusercontent.com/61825187/119657139-d026b180-be2b-11eb-9e33-31efbf98ed61.png">
