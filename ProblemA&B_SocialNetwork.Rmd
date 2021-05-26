@@ -1,0 +1,348 @@
+---
+title: "SOST71032 Social Network Analysis Assessment II"
+
+date: "4/25/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("rmarkdown")
+library("knitr")
+```
+
+##### Assessment II Part A: Lazega’s Lawyers
+
+## Problem a) 
+
+##### Loading dataset and libraries 
+
+```{r dataset}
+LazNet <- read.table('/Users/xiaoni/Downloads/lazcowork.txt')
+colnames(LazNet)<-c(1:36)
+LazAtt <- read.table('/Users/xiaoni/Downloads/lazpractice.txt')
+library(RSiena)
+library('igraph')
+```
+
+##### Visulisation
+
+```{r visulisation1}
+m <- as.matrix(LazNet)
+mode(m) <- "numeric"
+
+net <- graph.adjacency(m, mode = "undirected", weighted = TRUE, diag = FALSE)
+plot(net)
+```
+
+##### Number of nodes
+
+```{r nodes}
+node<- gorder(net)
+node
+```
+
+
+##### Number of edges
+
+```{r edges}
+edge <- gsize(net)
+edge
+```
+
+##### Density
+
+```{r density}
+# density captures how many edges there are in a network divided 
+# by the total possible number of edges
+edge/(((node)*(node-1))/2)
+```
+
+##### Conclustion
+
+```{r conclustion1}
+# Number of nodes is 36, number of edges is 115 and density is 0.1825397.   # The low density in terms of the interactions among the members.
+```
+
+## Problem b)
+
+##### State the hypotheses:
+##### H0: There is no significant influence between practice and lawyer
+##### H1: There is significant influence between practice and lawyer
+
+##### First, get the edge list
+```{r edgelist}
+g <- graph.adjacency(m)
+el<- get.edgelist(g)
+el <- as.matrix(el)
+```
+
+##### Read attribute to dataframe
+```{r readattribute}
+attributes <- as.data.frame(LazAtt, stringsAsFactors = F)
+```
+
+##### Add the column names
+```{r addcolumnnames}
+colnames(attributes) = c("practice")
+```
+
+##### Add an ID column
+```{r addid}
+attributes$ID <- 1:nrow(attributes)
+```
+
+##### Indexing data so that you only put in certain columns
+```{r indexing}
+el_no_weight <- el[,1:2] # We will ignore the ranking variable for now.
+```
+
+##### Graph the network
+```{r networkgraph}
+net37 <- graph.edgelist(el_no_weight, directed = F)
+net37
+plot(net)
+```
+
+##### Finally, add attributes  
+##### First link vertex names to their place in the attribute dataset
+```{r linkvertex}
+linked_ids <- match(V(net37)$name, attributes$ID)
+linked_ids
+```
+
+##### Then we can use that to assign a variable to each user in the network
+```{r assigntonetwork}
+V(net37)$practice <- attributes$practice[linked_ids]
+net37
+```
+
+##### Calculate homophily
+```{r homophily}
+df <- data.frame(get.edgelist(net37), stringsAsFactors = F)
+df$practice1 <- as.numeric(attributes$practice[match(df$X1, attributes$ID)])
+df$practice2 <- as.numeric(attributes$practice[match(df$X2, attributes$ID)])
+cor.test(df$practice1, df$practice2)
+```
+
+##### Conclusion
+
+```{r con}
+# H0: There is no significant influence between practice and lawyer
+# H1: There is significant influence between practice and lawyer
+# While here you can see the result, t score = 7.7499 which is high and p-value = 0.0002244 which is less than 0.05. 
+#Therefore we will reject the null hypothesis and accept alternative hypothesis.
+```
+
+## Problem c) 
+##### First Let us set up a ERGM model
+##### Get libraries
+```{r include=FALSE}
+# install.packages("statnet")
+library(statnet)
+# install.packages("intergraph")
+library(intergraph)
+```
+
+##### Convert it to a statnet object.
+```{r statnet}
+statnet37 <- asNetwork(net37)
+statnet37
+```
+
+##### Plot
+```{r plot}
+# install.packages("statnet")
+plot(statnet37, 
+     vertex.col = "tomato", 
+     vertex.cex = 1)
+```
+
+##### Describe what these statistics represent and why they might be of interest to include in an ERGM. 
+```{r explain}
+# nodecov("practice")
+# Explanation: nodecov() is used for main effect of a covariate. 
+# This term adds a single network statistic to the model equaling 
+# the sum of attribute practice for all edges in the network. 
+# This term adds a single network statistic for each quantitative 
+# attribute or matrix column to the model equaling the sum of attr(i) 
+# and attr(j) for all edges in the network.
+
+# match("practice")
+# Explanation: nodematch is the homophily term in ergm. 
+# We can specify the attribute of "practice", which we want to 
+# examine as well as the different arguments, 
+# which allows for differential levels of homophily for different groups.
+
+# gwesp(decay = 0.693)
+# Explanation: In addition to the number of edges in the null model, 
+# the ERGM can also control other network structure factors, 
+# such as the number of binary groups in the network 
+# (set in ergm by mutual interaction) and triadic closure. 
+# (set in ergm via gwesp). 
+# The gwesp term behaves better comparing with triangles.
+
+```
+
+##### Fit the mentioned ERGM and interpret the parameter estimates. 
+##### Build a ERGM model 1
+```{r ergm}
+model1 <- ergm(statnet37 ~ edges + 
+                 nodematch("practice"))
+summary(model1)
+```
+
+##### Interpret
+```{r interpret2}
+# variable "practice" shows highly significant! 
+# As the p-value is pretty small.
+```
+
+##### Build a ERGM model 2
+```{r ergmmodel2}
+table(V(net37)$practice) # 0 = litigation, 1 = corporate
+model2 <- ergm(statnet37 ~ edges + 
+                 nodematch("practice", diff = T, levels = c("0", "1")))
+summary(model2)
+```
+
+##### Interpret
+```{r interpret3}
+# practice.1 which stands for corporate, is significant.
+```
+
+##### Build a ERGM model 3
+```{r ergmmodel3}
+model3 <- ergm(statnet37 ~ edges + 
+                 nodematch("practice") + 
+                 gwesp(0.693, fixed = T),
+               control=control.ergm(MCMLE.maxit= 40))
+summary(model3)
+```
+
+##### Interpret
+```{r inter4}
+# gwesp(decay = 0.693) is more significant than attribute practice.
+```
+
+##### Briefly explain how you would assess the goodness of fit of this model.
+##### The goodness-of-fit statistics for this most elaborate model
+```{r goodnessoffit}
+model3_gof <- gof(model3, control.gof.formula(nsim = 100))
+```
+
+##### Visulisation
+```{r visu}
+par(mar = rep(2, 4))
+plot(model3_gof, main = '')
+```
+
+##### Interpret
+```{r inter5}
+# From the visuliation, you can see an improvement over the random graph.
+```
+
+
+##### Part B: SAOM
+
+##### Problem a)
+
+##### Interpret the results. Assess the convergence of the model and discuss each effect in the table.
+```{r intr1}
+# Interpret: 
+
+# The convergence t ratios all is less than 0.03, the overall maximum convergence #ratio is 0.1, 
+# the algorithm is converged.
+
+# 0. Rate presents each actor is given 8.96 micro steps 
+# in which to make a change to #its network, such as add/drop 
+# a tie or make no change.
+
+# 1. The outdegree(density) is negative and highly significant, 
+# which means that ties are unlikely. There are some penalty to 
+# add a tie.
+# That also means workplace has less co-workers more trusts.
+
+# 2. The feature on reciprocity is positive and highly significant, which means if I 
+# trust others in the workplace, the others will also trust me as well.
+
+# 3. The transitive triplets is positive and significant, which means if I trust 
+# co-worker A and co-worker B, then most likely, A and B also trust each other.
+
+# 4. The indegree - popularity is negative, which means actors with more incoming ties 
+# have a smaller likelihood receiving future ties.
+
+# 5. The sex alter is positive (0.06), smaller than standard error (0.31), so this is 
+#insiginificant. It means gender is mindness. 
+
+# 6. The sex ego is positive but not siginificant, means sex will influence trust but 
+#not so siginificantly influence.
+
+# 7. The same sex is positive and shows significance, means co-workers with same 
+# gender, trust more with each other. In another word, men trust men more, women trust 
+# women more. 
+```
+
+
+##### Problem b)
+
+```{r intr5}
+# Simulation Explanation:
+
+# 1. out-degree effect, controlling the density / average degree; 
+
+# 2. reciprocity effect, number of reciprocated ties
+
+# 3. transitive triplets effect, number of transitive patterns in its ties
+
+# 4. same sex: +1.0, observations who have the same gender 
+
+# Assortativity effects:Preferences of actors dependent on their
+
+# degrees.Depending on # their own out- and in-degrees,
+# actors can have differential preferences for tiesto 
+
+# others with also high or low out- and in-degrees.
+
+# There are 4 possibilitiese: 
+# out ego - out alter degrees
+# out ego - in alter degrees
+# in ego - out alter degrees
+# in ego - in alter degrees
+
+# There are four observations (tA, tB, tC, tD), the relation is defined as a "trust 
+# relation".
+# – outdegree: -2.5;
+# – reciprocity: +1.5;
+# – transitive triplets: +0.5; 
+# – same sex: +1.0;
+# – all other parameters: 0.
+
+# The evaluation function is fi(x) = -2.32{current outdegree} + 1.39{current 
+# reciprocity} + 0.16{current transitive triplets} + 0.91 {current same sex}
+# Add tie from A to D, while A is male and D is female ans same sex is positive. 
+# Therefore we may do the calculations with same sax = 1, 
+# different sex =-1
+# So its current value for this actor is: 
+# fi(x) = -2.32*(-2.5) + 1.39*1.5 + 0.16*0.5 + # 0.91*(-1) =7.055
+```
+
+##### Problem c)
+
+##### Discuss the goodness of fit of the model with regard to the indegree distribution
+```{r intr6}
+# Calculate the fit with respect to the indegree distribution
+
+# By specifying "verbose=TRUE" we get information on the screen telling how far       
+# calculations have progressed.
+
+# From the graph, the red line is observed. X-axes is the drgree from 1 to 8, while   
+# the y-axes is the simulated indegree.
+
+# It is a great fit model, the distribution is smooth.However this perfect fitting
+# model facing the risk of overfitting. 
+```
+
+
