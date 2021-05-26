@@ -53,4 +53,19 @@ What is the probability that A will create a tie to D in this ministep? Present 
 c) We are interested in the goodness of fit of the SAOM presented in point a). We run the sienaGOF function and get the result shown in the figure below.
 Discuss the goodness of fit of the model with regard to the indegree distribution. (5%)
 
-# 
+# Setup the social network analysis in UCINET
+
+The UCINET data SAMPSON contains numerous rankings of a novice group of monks collected by Sampson. Extract the data SAMPLK1, SAMPLK2 and SAMPLK3. The non-symmetric valued data is coded so that 3 represents the top or first choice, 2 the second choice and 1 the third or last choice.  They were only asked to give their top 3 choices but ties and no responses were allowed. Sampson identified four groups:
+
+Winifred, John, Gregory, Hugh, Boniface, Mark and Albert (The Young Turks)
+Bonaventure, Ambrose, Berthold, Peter and Louis (The Loyal Opposition)
+Basil, Elias and Simplicius (The Outcasts)
+Romuland, Victor and Amand (The Floaters).
+
+
+
+Produce a visualization of SAMPLK3 which identifies both the groups described above and the most central actors. How would you describe the roles of the most central actors in each group?.
+What is the community structure of SAMPLK3?
+Examine SAMPLK1 and SAMPLK2 together with SAMPLK3, how have things changed over time? Produce a visualization that captures the changes.
+By examining the network do you think Sampson was correct in his group identification and description of the groups?  Use the Qudratic Assignment Procedure to test Sampson’s description at both time 1 and time 3. Discuss your results.
+
